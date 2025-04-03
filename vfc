@@ -1,0 +1,354 @@
+import React, { useState, useEffect } from "react";
+import { CommanTableContain, PaginationContain, AddNewEntrySection } from "../../style/Admin/CourseCategory"; // Import CSS styles
+import EditIcon from "@mui/icons-material/Edit"; // Import EditIcon
+import DeleteIcon from "@mui/icons-material/Delete"; // Import DeleteIcon
+import DoneIcon from "@mui/icons-material/Done"; // Import DoneIcon (for Save)
+import CloseIcon from "@mui/icons-material/Close"; // Import CloseIcon (for Cancel)
+import AddIcon from "@mui/icons-material/Add"; // Import AddIcon for saving a new entry
+import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Typography, Switch, Box, TextField, Table, TableBody, TableCell, TableHead, TableRow, TablePagination } from "@mui/material";
+
+const initialData = [
+  { id: 1, course: "course1", status: "Active" },
+  { id: 2, course: "course2", status: "Inactive" },
+  { id: 3, course: "course3", status: "Active" },
+];
+
+const CourseCategory = () => {
+  const [data, setData] = useState(
+    initialData.map((item) => ({
+      ...item,
+      isActive: item.status === "Active",
+    }))
+  );
+  
+  const [page, setPage] = useState(0); // Current page state
+  const [rowsPerPage, setRowsPerPage] = useState(10); // Rows per page state
+  const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const [isEditing, setIsEditing] = useState(false); // New state for editing
+  const [editedCourse, setEditedCourse] = useState(""); // To store the edited course name
+  const [newCourseName, setNewCourseName] = useState(""); // To store the new course name
+  const [newCourseStatus, setNewCourseStatus] = useState("Active"); // To store the new course status
+
+  // Pagination functions
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Reset to the first page when rows per page changes
+  };
+
+  // Paginated data
+  const filteredData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const handleOpen = (id) => {
+    setSelectedId(id);
+    setOpen(true);
+    setIsEditing(false); // Reset editing state when opening the dialog
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedId(null);
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    setData(data.filter((item) => item.id !== selectedId));
+    handleClose();
+  };
+
+  const handleStatusChange = (id) => {
+    setData(
+      data.map((item) => {
+        if (item.id === id) {
+          const isActive = !item.isActive;
+          return {
+            ...item,
+            isActive,
+            status: isActive ? "Active" : "Inactive",
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleEdit = (id) => {
+    // Set the course name and open the edit mode
+    const courseToEdit = data.find((item) => item.id === id);
+    setEditedCourse(courseToEdit.course); // Set the course name to be edited
+    setSelectedId(id); // Set the selected ID
+    setIsEditing(true); // Set editing state to true
+  };
+
+  const handleSave = () => {
+    setData(
+      data.map((item) =>
+        item.id === selectedId
+          ? {
+              ...item,
+              course: editedCourse, // Save edited course name
+            }
+          : item
+      )
+    );
+    setIsEditing(false); // Reset editing state
+    handleClose();
+  };
+
+  // Function to save a new entry
+  const handleSaveNewEntry = () => {
+    const newCourse = {
+      id: data.length + 1, // Automatically generate an ID (this could be more sophisticated)
+      course: newCourseName,
+      status: newCourseStatus,
+      isActive: newCourseStatus === "Active",
+    };
+    setData([...data, newCourse]);
+    setNewCourseName(""); // Reset input field
+    setNewCourseStatus("Active"); // Reset status to active by default
+  };
+
+  return (
+    <>
+    <CommanTableContain>
+      
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>S.No.</TableCell>
+              <TableCell>Course Category</TableCell>
+              <TableCell>Active Status</TableCell>
+              <TableCell>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredData.map((item, index) => (
+              <TableRow key={item.id}>
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>
+                  {isEditing && item.id === selectedId ? (
+                    <TextField
+                      value={editedCourse}
+                      onChange={(e) => setEditedCourse(e.target.value)}
+                      size="small"
+                      fullWidth
+                    />
+                  ) : (
+                    item.course
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Box className="status-cell">
+                    <Typography className="status-label">{item.status}</Typography>
+                    <Switch
+                      checked={item.isActive}
+                      onChange={() => handleStatusChange(item.id)}
+                      size="large"
+                      disabled={isEditing && item.id === selectedId}
+                    />
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  {isEditing && item.id === selectedId ? (
+                    <>
+                      <DoneIcon
+                        onClick={handleSave}
+                        sx={{ color: "green", cursor: "pointer" }} // Green save button
+                      />
+                      <CloseIcon
+                        onClick={handleClose}
+                        sx={{ color: "red", cursor: "pointer" }} // Red cancel button
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <EditIcon
+                        onClick={() => handleEdit(item.id)}
+                        sx={{ color: "blue", cursor: "pointer" }} // Blue edit button
+                      />
+                      <DeleteIcon
+                        onClick={() => handleOpen(item.id)}
+                        sx={{ color: "red", cursor: "pointer" }} // Red delete button
+                      />
+                    </>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      
+        </CommanTableContain>
+
+      {/* Pagination (Moved after table) */}
+      <PaginationContain>
+        <TablePagination
+          component="div"
+          count={data.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </PaginationContain> 
+      
+
+      {/* Add New Entry Section */}
+      <Box className="width">
+        <Typography variant="h6">Add New Course</Typography>
+        <TextField
+          label="Course Name"
+          value={newCourseName}
+          onChange={(e) => setNewCourseName(e.target.value)}
+          size="small"
+          fullWidth
+        />
+        <Box className="switch-container">
+          <Typography>Active Status</Typography>
+          <Switch
+            checked={newCourseStatus === "Active"}
+            onChange={() => setNewCourseStatus(newCourseStatus === "Active" ? "Inactive" : "Active")}
+          />
+        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={handleSaveNewEntry}
+        >
+          Save New Entry
+        </Button>
+      
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>
+          <Typography variant="h6">Are you sure you want to delete this?</Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" color="text.secondary">
+            This action can't be undone!
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDelete} color="red" startIcon={<DeleteIcon />}>
+            DELETE
+          </Button>
+          <Button onClick={handleClose}>CANCEL</Button>
+        </DialogActions>
+      </Dialog>
+      </Box>
+   </>
+  );
+};
+
+export default CourseCategory;
+import { Box, Button, TableContainer } from "@mui/material";
+import { styled } from "@mui/system";
+import { Colors } from "../../style/theme/index";
+
+export const CommanTableContain = styled(TableContainer)(() => ({
+    marginTop: '70px', // Ensure it stays below the navbar
+    padding: '20px',
+    overflow: 'auto',
+    maxWidth: '1200px', 
+    width: '100%', // Full width of the container
+    
+    '& table': {
+      position: 'relative',
+      width: '100%', // Full width of the container
+      minWidth: '600px', // Set a minimum width if needed to avoid squishing the table
+    },
+  
+    // Table header with sticky positioning
+    '& table thead th': {
+      position: 'sticky',
+      top: 0,
+      backgroundColor: '#BEC4CB', // Background color to prevent overlap with rows
+      color: Colors.black,
+      zIndex: 2, // Ensure the header is above the rows
+      whiteSpace: 'nowrap', // Prevent the text from wrapping in the header
+      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)', // Optional shadow to distinguish header from rows
+    },
+  
+    // Styling for each cell in the table
+    '& table tr th, & table tr td': {
+      borderRight: '1px solid rgba(224, 224, 224, 1)',
+      borderLeft: 'none',
+      borderTop: 'none',
+      textAlign: 'center',
+    },
+  
+    '& table td:first-of-type': {
+      position: 'sticky',
+      left: 0,
+      backgroundColor: '#fff',
+      zIndex: 2,
+      borderLeft: '1px solid rgba(224, 224, 224, 1)', // Keep the left column sticky too
+    },
+  }));
+  
+
+export const PaginationContain = styled(Box)(() => ({
+    width: '97%', // Adjust the width to be smaller, you can change the percentage or set a fixed value (e.g., '400px')
+    maxWidth: '1200px', // Optionally limit the maximum width
+    margin: '0 auto', // Centers the pagination container horizontally
+    '& .MuiTablePagination-select': {
+      zIndex: 5,
+    },
+    borderTop: '1px solid #ddd',
+    borderLeft: '1px solid #ddd',
+    borderRight: '1px solid #ddd',
+    borderBottom: '1px solid #ddd',
+    padding: '0',
+    
+  }));
+  
+
+export const AddNewEntrySection = styled(Box)(() => ({
+  marginTop: '20px',
+  width: '100%',
+  maxWidth: '900px', // Optionally limit the maximum width
+  padding: '10px',
+  border: '1px solid #ddd',
+  borderRadius: '8px',
+  '& button': {
+    marginTop: '10px',
+  },
+  '& .switch-container': {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+  },
+}));
+
+// Add class-based styles for action icons
+export const tableActionIcon = {
+  cursor: 'pointer',
+  marginRight: '8px',
+};
+
+export const actionIconEdit = {
+  ...tableActionIcon,
+  color: 'green',
+};
+
+export const actionIconDelete = {
+  ...tableActionIcon,
+  color: 'red',
+};
+
+export const actionIconSave = {
+  ...tableActionIcon,
+  color: 'green',
+};
+
+export const actionIconCancel = {
+  ...tableActionIcon,
+  color: 'red',
+};
